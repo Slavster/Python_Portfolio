@@ -3,6 +3,7 @@ import os
 import random
 import sys
 from operator import itemgetter
+import pandas as pd
 
 def clear():
     if os.name == 'nt':
@@ -92,7 +93,7 @@ def team_assign(x,y):
         print("{} is not a player...\n"
               "".format(picking))
     else:
-        print("Here are the teams still available:")
+        print("\n Here are the teams still available:")
         print(y)
         chosen_team = input("Which team would you like to pick? ")
         if chosen_team.upper() == 'DONE':
@@ -107,81 +108,50 @@ def team_assign(x,y):
                 clear()
                 print("{} is not a team...\n"
                       "".format(chosen_team))
+                      #This catch is working, but it skips a player as a result, need to fix
             else:
                 x[picking] = chosen_team
                 print("Here are the teams chosen by each player so far:")
                 print(x)
 
+NUM_ROUNDS = 5
+rounds_to_tier = {x+1: NUM_ROUNDS-x for x in range(0,NUM_ROUNDS)} # create a dict -> {1: 5, 2: 4, 3: 2... etc}
+player_teams = {}
+
+# iterate through each round/tier in rounds_to_tier
+# Define this as a function too
+for ROUND, tier in rounds_to_tier.items():
+    ## Choose teams for `round` with players from `tier`
+    tier_file = 'tier_{}_teams.txt'.format(tier)
+    set_teams(tier_file)
+    player_teams[ROUND] = dict.fromkeys(players,)
+
+    print("Round {} begins now!!!".format(ROUND))
+    randomizer(players)
+    for player in players:
+        team_assign(player_teams[ROUND], teams)
+    bonus_round.extend(teams)
+
+## Choose teams for the bonus round
+## could this be an if statement in the loop above? if last round then don't pull the normal teams list
+player_teams[6] = dict.fromkeys(players,)
+print("Bonus round begins now, choose one team from any that have not been chosen yet!")
 randomizer(players)
 for player in players:
-    team_assign(x,y)
-bonus_round.extend(y)
+    team_assign(player_teams[6],bonus_round)
 
-round_counter = 2
-## Choose teams for round 2
-z = 'tier_4_teams.txt'
-set_teams(z)
-player_teams_2 = dict.fromkeys(players,)
-x = player_teams_2
-y = teams
+## Crete user friendly DataFrame for export
+print("\n Alright sports fans, here are all of the players and their teams this year:")
+output = pd.DataFrame(player_teams)
+output.columns = ['Tier {}'.format(tier) for tier, col in enumerate(output, 1)]
+output.rename(columns={output.columns[-1]:'Bonus Tier'},inplace = True)
+print(output)
 
-print("Round {} begins now!!!".format(round_counter))
-randomizer(players)
-for player in players:
-    team_assign(x,y)
-bonus_round.extend(y)
-round_counter += 1
-
-## Choose teams for round 3
-z = 'tier_3_teams.txt'
-set_teams(z)
-player_teams_3 = dict.fromkeys(players,)
-x = player_teams_3
-y = teams
-
-print("Round {} begins now!!!".format(round_counter))
-randomizer(players)
-for player in players:
-    team_assign(x,y)
-bonus_round.extend(y)
-round_counter += 1
-
-## Choose teams for round 4
-z = 'tier_2_teams.txt'
-set_teams(z)
-player_teams_4 = dict.fromkeys(players,)
-x = player_teams_4
-y = teams
-
-print("Round {} begins now!!!".format(round_counter))
-randomizer(players)
-for player in players:
-    team_assign(x,y)
-bonus_round.extend(y)
-round_counter += 1
-
-## Choose teams for round 5
-z = 'tier_1_teams.txt'
-set_teams(z)
-player_teams_5 = dict.fromkeys(players,)
-x = player_teams_5
-y = teams
-
-print("Round {} begins now!!!".format(round_counter))
-randomizer(players)
-for player in players:
-    team_assign(x,y)
-bonus_round.extend(y)
-
-## Choose teans for the bonus round
-player_teams_6 = dict.fromkeys(players,)
-x = player_teams_6
-y = bonus_round
-
-print("Bonus round begins now!!!")
-randomizer(players)
-for player in players:
-    team_assign(x,y)
-
-print("Alright sports fans, here are all of the players and their teams this year:")
- 
+if input("Want to save this to excel? Y/N: ").upper() == 'Y':
+    output.to_excel('draft_results.xlsx')
+    print("All set, check the folder below for your file.")
+    cwd = os.getcwd()
+    print(cwd)
+else:
+    print("\n Good luck this year!")
+    sys.exit()
