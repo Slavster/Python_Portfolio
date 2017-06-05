@@ -76,43 +76,38 @@ def set_teams(z):
         global teams
         teams = list(file.read().split('\n'))
         file.close()
-## specifying round 1
+## specifying round 1, I think this can be deleted
 z = 'tier_5_teams.txt'
 set_teams(z)
 
 ## Assigning teams to players
 player_teams = dict.fromkeys(players,)
-x = player_teams
-y = teams
 bonus_round = []
 
-def team_assign(x,y):
-    picking = input("Which player is choosing a team?\n> ")
-    if picking not in players:
-        clear()
-        print("{} is not a player...\n"
-              "".format(picking))
-    else:
-        print("\n Here are the teams still available:")
-        print(y)
-        chosen_team = input("Which team would you like to pick? ")
-        if chosen_team.upper() == 'DONE':
+def team_assign(player_teams,teams,players):
+    player_counter = len(players)
+    while player_counter > 1:
+        picking = input("Which player is choosing a team?\n> ")
+        if picking not in players:
             clear()
-            print("Here are the teams chosen by each player so far:")
-            print(x)
+            print("{} is not a player...\n"
+                  "".format(picking))
         else:
+            print("\n Here are the teams still available:")
+            print(teams)
+            chosen_team = input("Which team would you like to pick? ")
             clear()
             try:
-                y.remove(chosen_team)
+                teams.remove(chosen_team)
             except ValueError:
                 clear()
                 print("{} is not a team...\n"
                       "".format(chosen_team))
-                      #This catch is working, but it skips a player as a result, need to fix
             else:
-                x[picking] = chosen_team
+                player_teams[picking] = chosen_team
                 print("Here are the teams chosen by each player so far:")
-                print(x)
+                print(player_teams)
+                player_counter -= 1
 
 NUM_ROUNDS = 5
 rounds_to_tier = {x+1: NUM_ROUNDS-x for x in range(0,NUM_ROUNDS)} # create a dict -> {1: 5, 2: 4, 3: 2... etc}
@@ -129,7 +124,7 @@ for ROUND, tier in rounds_to_tier.items():
     print("Round {} begins now!!!".format(ROUND))
     randomizer(players)
     for player in players:
-        team_assign(player_teams[ROUND], teams)
+        team_assign(player_teams[ROUND], teams, players)
     bonus_round.extend(teams)
 
 ## Choose teams for the bonus round
@@ -138,7 +133,7 @@ player_teams[6] = dict.fromkeys(players,)
 print("Bonus round begins now, choose one team from any that have not been chosen yet!")
 randomizer(players)
 for player in players:
-    team_assign(player_teams[6],bonus_round)
+    team_assign(player_teams[6],bonus_round,players)
 
 ## Crete user friendly DataFrame for export
 print("\n Alright sports fans, here are all of the players and their teams this year:")
