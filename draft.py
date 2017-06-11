@@ -21,7 +21,7 @@ Enter 'HELP' to show this message again.
 Enter 'REMOVE' to delete a player from the list.
 """)
 
-def show_players():
+def show_players(players):
     print("Here is the current list of players")
     print(players)
 
@@ -34,25 +34,28 @@ def remove_player():
         print("{} is not a player...\n"
               "".format(whom_to_remove))
 
+## players is used in a bunch of fuctions; figure out a way to move out of global, current hangup is Main function
 players = []
-player_select = 1
-player_add_instructions()
+def player_define():
+    player_select = 1
+    player_add_instructions()
 
-while player_select == 1:
-    new_player = input("> ")
+    while player_select == 1:
+        new_player = input("> ")
+        if new_player.upper() == 'DONE' or new_player.upper() == 'QUIT':
+            player_select = 0
+            break
+        elif new_player.upper() == 'HELP':
+            player_add_instructions()
+            continue
+        elif new_player.upper() == 'REMOVE':
+            remove_player()
+        else:
+            players.append(new_player)
 
-    if new_player.upper() == 'DONE' or new_player.upper() == 'QUIT':
-        player_select = 0
-        break
-    elif new_player.upper() == 'HELP':
-        player_add_instructions()
-        continue
-    elif new_player.upper() == 'REMOVE':
-        remove_player()
-    else:
-        players.append(new_player)
+        show_players(players)
 
-    show_players()
+player_define()
 
 ## Assign a random number to each player
 def randomizer(players):
@@ -65,10 +68,10 @@ def randomizer(players):
     print(final_rand_player)
     rand_player = None
 
-## Get list of teams
-def set_teams(z):
+## Get list of teams from a file
+def set_teams(tier_file):
     try:
-        file = open(z)
+        file = open(tier_file)
     except IOError:
         print("Unable to form a list of teams, exiting the game. :(")
         sys.exit()
@@ -76,14 +79,8 @@ def set_teams(z):
         global teams
         teams = list(file.read().split('\n'))
         file.close()
-## specifying round 1, I think this can be deleted
-z = 'tier_5_teams.txt'
-set_teams(z)
 
-## Assigning teams to players
-player_teams = dict.fromkeys(players,)
-bonus_round = []
-
+# Ensures each player has chosen a valid team
 def team_assign(player_teams,teams,players):
     player_counter = len(players)
     while player_counter > 1:
@@ -109,44 +106,54 @@ def team_assign(player_teams,teams,players):
                 print(player_teams)
                 player_counter -= 1
 
-NUM_ROUNDS = 5
-rounds_to_tier = {x+1: NUM_ROUNDS-x for x in range(0,NUM_ROUNDS)} # create a dict -> {1: 5, 2: 4, 3: 2... etc}
+## This can be a function too
+NUM_ROUNDS = 6
+rounds_to_tier = {x+1: NUM_ROUNDS-x-1 for x in range(0,NUM_ROUNDS)} # create a dict -> {1: 5, 2: 4, 3: 2... etc}
 player_teams = {}
 
-# iterate through each round/tier in rounds_to_tier
-# Define this as a function too
-for ROUND, tier in rounds_to_tier.items():
-    ## Choose teams for `round` with players from `tier`
-    tier_file = 'tier_{}_teams.txt'.format(tier)
-    set_teams(tier_file)
-    player_teams[ROUND] = dict.fromkeys(players,)
+# Iterate through each round/tier in rounds_to_tier
+def Main(rounds_to_tier, player_teams, players):
+    bonus_round = []
+    for ROUND, tier in rounds_to_tier.items():
+        if ROUND == 6:
+            pass
+        ## Choose teams for `round` with players from `tier`
+        else:
+            tier_file = 'tier_{}_teams.txt'.format(tier)
+            set_teams(tier_file)
+        player_teams[ROUND] = dict.fromkeys(players,)
+        if ROUND == 6:
+            print("Bonus round begins now, choose one team from any that have not been chosen yet!")
+        else:
+            print("Round {} begins now!!!".format(ROUND))
+        randomizer(players)
+        for player in players:
+            if ROUND == 6:
+                team_assign(player_teams[ROUND], bonus_round, players)
+            else:
+                team_assign(player_teams[ROUND], teams, players)
+        if ROUND == 6:
+            break
+        else:
+            bonus_round.extend(teams)
 
-    print("Round {} begins now!!!".format(ROUND))
-    randomizer(players)
-    for player in players:
-        team_assign(player_teams[ROUND], teams, players)
-    bonus_round.extend(teams)
+Main(rounds_to_tier, player_teams, players)
 
-## Choose teams for the bonus round
-## could this be an if statement in the loop above? if last round then don't pull the normal teams list
-player_teams[6] = dict.fromkeys(players,)
-print("Bonus round begins now, choose one team from any that have not been chosen yet!")
-randomizer(players)
-for player in players:
-    team_assign(player_teams[6],bonus_round,players)
+## Create user friendly DataFrame for export
+def exporter (player_teams):
+    print("\n Alright sports fans, here are all of the players and their teams this year:")
+    output = pd.DataFrame(player_teams)
+    output.columns = ['Tier {}'.format(tier) for tier, col in enumerate(output, 1)]
+    output.rename(columns={output.columns[-1]:'Bonus Tier'},inplace = True)
+    print(output)
 
-## Crete user friendly DataFrame for export
-print("\n Alright sports fans, here are all of the players and their teams this year:")
-output = pd.DataFrame(player_teams)
-output.columns = ['Tier {}'.format(tier) for tier, col in enumerate(output, 1)]
-output.rename(columns={output.columns[-1]:'Bonus Tier'},inplace = True)
-print(output)
+    if input("Want to save this to excel? Y/N: ").upper() == 'Y':
+        output.to_excel('draft_results.xlsx')
+        print("All set, check the folder below for your file.")
+        cwd = os.getcwd()
+        print(cwd)
+    else:
+        print("\n Good luck this year!")
+        sys.exit()
 
-if input("Want to save this to excel? Y/N: ").upper() == 'Y':
-    output.to_excel('draft_results.xlsx')
-    print("All set, check the folder below for your file.")
-    cwd = os.getcwd()
-    print(cwd)
-else:
-    print("\n Good luck this year!")
-    sys.exit()
+exporter(player_teams)
