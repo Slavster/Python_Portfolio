@@ -35,8 +35,8 @@ def remove_player():
               "".format(whom_to_remove))
 
 ## players is used in a bunch of fuctions; figure out a way to move out of global, current hangup is Main function
-players = []
 def player_define():
+    players = []
     player_select = 1
     player_add_instructions()
 
@@ -44,7 +44,7 @@ def player_define():
         new_player = input("> ")
         if new_player.upper() == 'DONE' or new_player.upper() == 'QUIT':
             player_select = 0
-            break
+            return players
         elif new_player.upper() == 'HELP':
             player_add_instructions()
             continue
@@ -54,8 +54,6 @@ def player_define():
             players.append(new_player)
 
         show_players(players)
-
-player_define()
 
 ## Assign a random number to each player
 def randomizer(players):
@@ -76,9 +74,9 @@ def set_teams(tier_file):
         print("Unable to form a list of teams, exiting the game. :(")
         sys.exit()
     else:
-        global teams
         teams = list(file.read().split('\n'))
         file.close()
+        return teams
 
 # Ensures each player has chosen a valid team
 def team_assign(player_teams,teams,players):
@@ -106,39 +104,6 @@ def team_assign(player_teams,teams,players):
                 print(player_teams)
                 player_counter -= 1
 
-## This can be a function too
-NUM_ROUNDS = 6
-rounds_to_tier = {x+1: NUM_ROUNDS-x-1 for x in range(0,NUM_ROUNDS)} # create a dict -> {1: 5, 2: 4, 3: 2... etc}
-player_teams = {}
-
-# Iterate through each round/tier in rounds_to_tier
-def Main(rounds_to_tier, player_teams, players):
-    bonus_round = []
-    for ROUND, tier in rounds_to_tier.items():
-        if ROUND == 6:
-            pass
-        ## Choose teams for `round` with players from `tier`
-        else:
-            tier_file = 'tier_{}_teams.txt'.format(tier)
-            set_teams(tier_file)
-        player_teams[ROUND] = dict.fromkeys(players,)
-        if ROUND == 6:
-            print("Bonus round begins now, choose one team from any that have not been chosen yet!")
-        else:
-            print("Round {} begins now!!!".format(ROUND))
-        randomizer(players)
-        for player in players:
-            if ROUND == 6:
-                team_assign(player_teams[ROUND], bonus_round, players)
-            else:
-                team_assign(player_teams[ROUND], teams, players)
-        if ROUND == 6:
-            break
-        else:
-            bonus_round.extend(teams)
-
-Main(rounds_to_tier, player_teams, players)
-
 ## Create user friendly DataFrame for export
 def exporter (player_teams):
     print("\n Alright sports fans, here are all of the players and their teams this year:")
@@ -156,4 +121,41 @@ def exporter (player_teams):
         print("\n Good luck this year!")
         sys.exit()
 
-exporter(player_teams)
+# Iterates through each round/tier to produce a dictionary that holds a player's name and their chosen team
+def main():
+    players = player_define()
+    rounds_to_tier = {x+1: NUM_ROUNDS-x-1 for x in range(0,NUM_ROUNDS)}
+    # create a dict so that highest tier teams are chosen last and lowest tiers first  -> {1: 5, 2: 4, 3: 2... etc}
+    player_teams = {}
+    bonus_round = []
+
+    for ROUND, tier in rounds_to_tier.items():
+        if ROUND == 6:
+            pass
+        ## define the list of teams to be used for a particular round
+        else:
+            tier_file = 'tier_{}_teams.txt'.format(tier)
+            teams = set_teams(tier_file)
+        player_teams[ROUND] = dict.fromkeys(players,)
+        # create a dict -> {player1:None,player2:None.... etc}, teams assigned to 'None' later
+
+        if ROUND == 6:
+            print("Bonus round begins now, choose one team from any that have not been chosen yet!")
+        else:
+            print("Round {} begins now!!!".format(ROUND))
+        randomizer(players)
+
+        for player in players:
+            if ROUND == 6:
+                team_assign(player_teams[ROUND], bonus_round, players)
+            else:
+                team_assign(player_teams[ROUND], teams, players)
+        if ROUND == 6:
+            break
+        else:
+            bonus_round.extend(teams)
+
+    exporter(player_teams)
+
+NUM_ROUNDS = 6
+main()
